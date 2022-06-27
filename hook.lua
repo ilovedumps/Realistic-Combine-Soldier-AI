@@ -149,15 +149,12 @@ end
 
 function CombineAI_MoreChatter(npc)
 	if GetConVar("kn_realistic_combine_make_them_talk_more"):GetFloat()==1 then
-
-		if npc:GetNPCState()==NPC_STATE_COMBAT then
-	
-			if npc:IsCurrentSchedule(SCHED_HIDE_AND_RELOAD) and IsValid(enemy) and !npc:Visible(enemy) and npc:IsSquadLeader()==true and !alien_zombies[enemy:GetClass()] then 
-			npc:SetSchedule(SCHED_RELOAD)
-			npc:PlaySentence("COMBINE_LOST_SHORT", 0, 1) 
-			elseif npc:IsCurrentSchedule(SCHED_HIDE_AND_RELOAD) and IsValid(enemy) and !npc:Visible(enemy) and npc:IsSquadLeader()==false and !alien_zombies[enemy:GetClass()] then
-					npc:SetSchedule(SCHED_RELOAD)
-			npc:PlaySentence("COMBINE_REFIND_ENEMY", 0, 1) 
+		if npc:IsCurrentSchedule(SCHED_HIDE_AND_RELOAD) and IsValid(enemy) and !npc:Visible(enemy) and npc:IsSquadLeader()==true and !alien_zombies[enemy:GetClass()] then 
+		npc:SetSchedule(SCHED_RELOAD)
+		npc:PlaySentence("COMBINE_LOST_SHORT", 0, 1) 
+		elseif npc:IsCurrentSchedule(SCHED_HIDE_AND_RELOAD) and IsValid(enemy) and !npc:Visible(enemy) and npc:IsSquadLeader()==false and !alien_zombies[enemy:GetClass()] then
+				npc:SetSchedule(SCHED_RELOAD)
+		npc:PlaySentence("COMBINE_REFIND_ENEMY", 0, 1) 
 		end
 
 	if IsValid(enemy) and !npc:Visible(enemy) and IsValid(npc:GetNearestSquadMember()) and npc:IsSquadLeader()==false and !alien_zombies[enemy:GetClass()] then
@@ -233,7 +230,6 @@ function CombineAI_MoreChatter(npc)
 		end
 	end
 	end
-	end
 end
 
 function CombineAI_AvoidPlayerCrosshair(npc)
@@ -302,7 +298,6 @@ function CombineAI_FlankRevisedBehavior(npc)
 						else
 							npc:SetSchedule( SCHED_AMBUSH )
 							npc:GetNearestSquadMember():SetSchedule(SCHED_ESTABLISH_LINE_OF_FIRE)
-							print("true")
 						end
 					end
 				end
@@ -386,7 +381,6 @@ function CombineAI_FastGrenade(npc)
 				if IsValid(enemy) then
 					if (v:GetPos()-enemy:GetPos()):Length()<=100 and v:Visible(enemy) then
 					v:SetSaveValue("m_flDetonateTime", v:GetInternalVariable("m_flDetonateTime")-math.random(0.002, 0.01))
-					print(v:GetInternalVariable("m_flDetonateTime"))
 					end
 				end
 			end
