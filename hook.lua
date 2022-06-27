@@ -1,5 +1,5 @@
-if not ConVarExists("kn_realistic_combine") then //check if this convar does not exist, that way we only have to call it once and potentially reduce lag.
-	CreateConVar("kn_realistic_combine", 1, FCVAR_NOTIFY + FCVAR_ARCHIVE)//only checks if this convar exists because we only need to know if this does exist, that way we dont need to check for the other convars.
+if not ConVarExists("kn_realistic_combine") then --check if this convar does not exist, that way we only have to call it once and potentially reduce lag.
+	CreateConVar("kn_realistic_combine", 1, FCVAR_NOTIFY + FCVAR_ARCHIVE)--only checks if this convar exists because we only need to know if this does exist, that way we dont need to check for the other convars.
 	//the rest of these convars will follow
 	CreateConVar("kn_realistic_combine_promixity_grenade", 1, FCVAR_NOTIFY + FCVAR_ARCHIVE)
 	CreateConVar("kn_realistic_combine_ai", 1, FCVAR_NOTIFY + FCVAR_ARCHIVE)
@@ -15,7 +15,7 @@ if not ConVarExists("kn_realistic_combine") then //check if this convar does not
 	CreateConVar("kn_realistic_combine_no_delay_gunshots", 1, FCVAR_NOTIFY + FCVAR_ARCHIVE)
 	CreateConVar("kn_realistic_combine_make_them_talk_more", 1, FCVAR_NOTIFY + FCVAR_ARCHIVE)
 end
-//GO TO CODE 416 or function CombineAI for full explanation
+--GO TO CODE 416 or function CombineAI for full explanation
 function CombineAI_CrosshairMain(ply) 
 	local tr = ply:GetEyeTrace() 
 	local ent = tr.Entity 
