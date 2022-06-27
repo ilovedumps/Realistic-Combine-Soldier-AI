@@ -286,6 +286,7 @@ function CombineAI_FlankRevisedBehavior(npc)
 							if npc:IsCurrentSchedule(SCHED_FORCED_GO_RUN) or npc:IsCurrentSchedule(118) or npc:IsCurrentSchedule(98) then
 								if not npc:IsSquadLeader() then
 							npc:SetSchedule(SCHED_RUN_RANDOM)
+							print("1")
 								end
 							end
 						end
@@ -298,6 +299,7 @@ function CombineAI_FlankRevisedBehavior(npc)
 						else
 							npc:SetSchedule( SCHED_AMBUSH )
 							npc:GetNearestSquadMember():SetSchedule(SCHED_ESTABLISH_LINE_OF_FIRE)
+							print("2")
 						end
 					end
 				end
@@ -389,36 +391,8 @@ function CombineAI_FastGrenade(npc)
 end
 
 function CombineAI_RememberEnemy(npc)
-	if enemy:IsNPC() then
-		for k,v in ipairs(ents.FindByClass("npc_*")) do 
-			if IsValid(v) then
-				if enemy==v then
-				npc:UpdateEnemyMemory(v, v:GetPos())
-				npc:SetEnemy(v)
-				end
-			end
-		end
-	elseif enemy:IsPlayer() then
-		for k,v in ipairs(player.GetAll()) do 
-			if IsValid(v) then
-				if enemy==v then
-				npc:UpdateEnemyMemory(v, v:GetPos())
-				npc:SetEnemy(v)
-				end
-			end
-		end
-	end
-end
-
-function CombineAI_MakeEnemyInFarDistance(npc)
-	if not npc:GetNPCState()==NPC_STATE_COMBAT then
-		for k,v in ipairs(ents.FindByClass("npc_*")) do 
-			if v:GetSquad()==npc:GetSquad() then
-				if IsValid(v:GetEnemy()) then
-					npc:SetEnemy(v:GetEnemy())
-				end
-			end
-		end
+	if IsValid(enemy) then
+		npc:UpdateEnemyMemory(enemy, enemy:GetPos())
 	end
 end
 
@@ -460,7 +434,6 @@ function CombineAI(npc)
 			CombineAI_NoFlinch(npc)--makes them not flinch. not realistic tho. but this is number one reason why these guys are sooo dumb and weak and die fast from my testing. i have to do this.
 		end
 		--MORE AI BEHAVIORS DOWN BELOW WITH EXPLANATION
-		CombineAI_MakeEnemyInFarDistance(npc)
 		CombineAI_PropsAndExplosives(npc)--this ai behavior makes them run from burning barrels and hl2 grenades.
 	end
 end
@@ -475,11 +448,11 @@ end
 
 function CombineAI_Died(npc, attacker, inflictor)--AI behavior that makes other soldiers run away if a soldier dies
 	if npc:GetClass()=="npc_combine_s" then
-		for k, v in pairs(ents.FindByClass("npc_combine_s")) do
-			if IsValid(v:GetNearestSquadMember()) then
-				if (v:GetPos()-v:GetNearestSquadMember():GetPos()):Length()<=3000 then
-				v:GetNearestSquadMember():SetSchedule(SCHED_RUN_FROM_ENEMY)
-				end
+		if IsValid(npc:GetNearestSquadMember()) then
+			if (npc:GetPos()-npc:GetNearestSquadMember():GetPos()):Length()<=3000 then
+			npc:GetNearestSquadMember():SetSchedule(SCHED_RUN_FROM_ENEMY)
+			print("true")
+			npc.SoldierDied=true
 			end
 		end
 	end
@@ -544,11 +517,13 @@ function CombineAI_TakingDamage(npc, hitgroup, dmginfo)
 		else npc.Combinehide=true 
 				if npc.Combinehide==true then 
 					timer.Simple(1.5, function() 
-						if IsValid(npc) and IsValid(npc:GetNearestSquadMember()) and npc.Combinehide==true and not npc.SoldierReloading==true and not npc:IsCurrentSchedule(SCHED_RUN_FROM_ENEMY) then
+						if IsValid(npc) and IsValid(npc:GetNearestSquadMember()) and npc.Combinehide==true and not npc:IsCurrentSchedule(SCHED_RUN_FROM_ENEMY) and not npc.SoldierDied then
 						npc.Combinehide=false
 						npc:SetSchedule(SCHED_RUN_FROM_ENEMY)
+						print("sss")
 						if (npc:GetPos()-npc:GetNearestSquadMember():GetPos()):Length()<=700 and npc:Visible(npc:GetNearestSquadMember()) then
 						npc:GetNearestSquadMember():SetSchedule(SCHED_RUN_FROM_ENEMY)
+						print("fff")
 						end
 						end
 					end)
