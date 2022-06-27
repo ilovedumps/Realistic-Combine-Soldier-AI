@@ -1,6 +1,6 @@
 if not ConVarExists("kn_realistic_combine") then --check if this convar does not exist, that way we only have to call it once and potentially reduce lag.
 	CreateConVar("kn_realistic_combine", 1, FCVAR_NOTIFY + FCVAR_ARCHIVE)--only checks if this convar exists because we only need to know if this does exist, that way we dont need to check for the other convars.
-	//the rest of these convars will follow
+	--the rest of these convars will follow
 	CreateConVar("kn_realistic_combine_promixity_grenade", 1, FCVAR_NOTIFY + FCVAR_ARCHIVE)
 	CreateConVar("kn_realistic_combine_ai", 1, FCVAR_NOTIFY + FCVAR_ARCHIVE)
 	CreateConVar("kn_realistic_combine_damage_npc", 1, FCVAR_NOTIFY + FCVAR_ARCHIVE)
@@ -279,7 +279,7 @@ function CombineAI_FlankRevisedBehavior(npc)
 		if npc:GetInternalVariable("skin")==0 and IsValid(npc:GetNearestSquadMember()) and IsValid(enemy) and !npc:Visible(enemy) and enemy:Health()>=enemy:GetMaxHealth()/2.5 and IsValid(enemy:GetActiveWeapon()) and !alien_zombies[enemy:GetClass()] then
 			if (npc:GetPos()-enemy:GetPos()):Length()<=3000 and (npc:GetPos()-enemy:GetPos()):Length()>=900 then
 				if npc:IsCurrentSchedule(SCHED_ESTABLISH_LINE_OF_FIRE) or npc:IsCurrentSchedule(118) or npc:IsCurrentSchedule(98) then
-				//thanks for the website maurits.tv for this code(edited it ofc)
+				--thanks for the website maurits.tv for this code(edited it ofc)
 			npc:SetLastPosition( util.QuickTrace( enemy:GetShootPos(), enemy:GetAimVector()*1000 ).HitPos + Vector( 0, 0, 40 ) )
 			npc:SetSchedule( SCHED_FORCED_GO_RUN )
 				end
@@ -450,24 +450,24 @@ function CombineAI(npc)
 			["npc_barnacle"]=true,
 		}
 		
-		if npc:GetNPCState()==NPC_STATE_COMBAT then//only apply the following ai behaviors if they are in combat, this has the advantage of reducing lag.
-			CombineAI_RememberEnemy(npc)//makes them not forget the enemy
-			CombineAI_ShootMoreThanTwo(npc)//makes more than 2 soldiers shoot, in hl2 and gmod they are dumb asf. spawn like 100 of them and only 2 of them shoot.
-			CombineAI_ReloadLow(npc)//makes soldiers crouch reload
-			CombineAI_GunAccuracy(npc)//modified gun accuracy of soldiers
-			CombineAI_AloneSoldier(npc)//ai behavior if soldiers are alone. makes them run away from enemies that has a weapon because thats realistic.
-			CombineAI_MoreChatter(npc)//makes them chat more. poorly coded.
-			CombineAI_AvoidPlayerCrosshair(npc)//makes soldier run in random directions just to avoid player crosshair. 
-			CombineAI_FlankRevisedBehavior(npc)//'better' flank behavior
-			CombineAI_EnemyTooClose(npc)//makes soldiers move away from enemies unless they are too closed. they can still do melee attacks.
-			CombineAI_StealthMovement(npc)//makes soldiers not make any footstep sound and generally slow walk
-			CombineAI_GunsAndShit(npc)//edited weapon properties such as making them elite, auto gunshots, frequent grenade throwings, etc...
-			CombineAI_FastGrenade(npc)//makes grenades that are owned by soldiers to explode fast in enemy proximity
-			CombineAI_NoFlinch(npc)//makes them not flinch. not realistic tho. but this is number one reason why these guys are sooo dumb and weak and die fast from my testing. i have to do this.
+		if npc:GetNPCState()==NPC_STATE_COMBAT then--only apply the following ai behaviors if they are in combat, this has the advantage of reducing lag.
+			CombineAI_RememberEnemy(npc)--makes them not forget the enemy
+			CombineAI_ShootMoreThanTwo(npc)--makes more than 2 soldiers shoot, in hl2 and gmod they are dumb asf. spawn like 100 of them and only 2 of them shoot.
+			CombineAI_ReloadLow(npc)--makes soldiers crouch reload
+			CombineAI_GunAccuracy(npc)--modified gun accuracy of soldiers
+			CombineAI_AloneSoldier(npc)--ai behavior if soldiers are alone. makes them run away from enemies that has a weapon because thats realistic.
+			CombineAI_MoreChatter(npc)--makes them chat more. poorly coded.
+			CombineAI_AvoidPlayerCrosshair(npc)--makes soldier run in random directions just to avoid player crosshair. 
+			CombineAI_FlankRevisedBehavior(npc)--'better' flank behavior
+			CombineAI_EnemyTooClose(npc)--makes soldiers move away from enemies unless they are too closed. they can still do melee attacks.
+			CombineAI_StealthMovement(npc)--makes soldiers not make any footstep sound and generally slow walk
+			CombineAI_GunsAndShit(npc)--edited weapon properties such as making them elite, auto gunshots, frequent grenade throwings, etc...
+			CombineAI_FastGrenade(npc)--makes grenades that are owned by soldiers to explode fast in enemy proximity
+			CombineAI_NoFlinch(npc)--makes them not flinch. not realistic tho. but this is number one reason why these guys are sooo dumb and weak and die fast from my testing. i have to do this.
 		end
-		//MORE AI BEHAVIORS DOWN BELOW WITH EXPLANATION
+		--MORE AI BEHAVIORS DOWN BELOW WITH EXPLANATION
 		CombineAI_MakeEnemyInFarDistance(npc)
-		CombineAI_PropsAndExplosives(npc)//this ai behavior makes them run from burning barrels and hl2 grenades.
+		CombineAI_PropsAndExplosives(npc)--this ai behavior makes them run from burning barrels and hl2 grenades.
 	end
 end
 
@@ -479,7 +479,7 @@ function Think()
 	end
 end
 
-function CombineAI_Died(npc, attacker, inflictor)//AI behavior that makes other soldiers run away if a soldier dies
+function CombineAI_Died(npc, attacker, inflictor)--AI behavior that makes other soldiers run away if a soldier dies
 	if npc:GetClass()=="npc_combine_s" then
 		for k, v in pairs(ents.FindByClass("npc_combine_s")) do
 			if IsValid(v:GetNearestSquadMember()) then
@@ -503,7 +503,7 @@ hook.Add("Tick", "Combine_kenni_maggle", function()
 	end
 end)
 
-function CombineAI_Spawned(ent)//Called as soon as the soldier is spawned. Basically gives them more health, makes them jump, long visibility,
+function CombineAI_Spawned(ent)--Called as soon as the soldier is spawned. Basically gives them more health, makes them jump, long visibility,
 	if GetConVar("kn_realistic_combine"):GetFloat()==1 then
 		if GetConVar("kn_realistic_combine_health"):GetFloat()==1 then
 			if ( ent:GetClass() == "npc_combine_s" ) then
@@ -541,9 +541,9 @@ hook.Add( "OnEntityCreated", "InitCombine)kenni", function( ent )
 end )
 
 function CombineAI_TakingDamage(npc, hitgroup, dmginfo)
-//AI Behavior and hl2 boosted weapon damages. 
-//If a soldier takes damage then it will take cover and other soldiers as well. 
-//Also boosts bullet damage for their hl2 weapons against npcs, we dont want to do this to sweps.
+--AI Behavior and hl2 boosted weapon damages. 
+--If a soldier takes damage then it will take cover and other soldiers as well. 
+--Also boosts bullet damage for their hl2 weapons against npcs, we dont want to do this to sweps.
 	if GetConVar("kn_realistic_combine"):GetFloat()==1 then
 		if npc:GetClass()=="npc_combine_s" then 
 			if dmginfo:GetAttacker():GetClass()=="npc_combine_s" then
@@ -585,7 +585,7 @@ hook.Add("ScaleNPCDamage","kenni_combine_ddddddddddddddd", function( npc, hitgro
 end)
 
 function playerdamage_maggle( ply, hitgroup, dmginfo )
-//Same thing as above but boosts hl2 weapon damages against the player.
+--Same thing as above but boosts hl2 weapon damages against the player.
 	if GetConVar("kn_realistic_combine"):GetFloat()==1 then
 		if GetConVar("kn_realistic_combine_damage_player"):GetFloat()==1 then
 			local attacker = dmginfo:GetAttacker()
