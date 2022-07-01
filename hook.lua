@@ -23,8 +23,7 @@ if not ConVarExists("kn_realistic_combine") then
 	CreateConVar("kn_realistic_combine_no_delay_gunshots", 1, FCVAR_NOTIFY + FCVAR_ARCHIVE)
 	CreateConVar("kn_realistic_combine_make_them_talk_more", 1, FCVAR_NOTIFY + FCVAR_ARCHIVE)
 	CreateConVar("kn_realistic_combine_avoid_player_crosshair", 1, FCVAR_NOTIFY + FCVAR_ARCHIVE)
-	CreateConVar("kn_realistic_combine_improved_explosives_behavior", 1, FCVAR_NOTIFY + FCVAR_ARCHIVE)
-	CreateConVar("kn_realistic_combine_shoot_enemy_cover", 1, FCVAR_NOTIFY + FCVAR_ARCHIVE)
+	CreateConVar("kn_realistic_combine_improved_grenade_behavior", 1, FCVAR_NOTIFY + FCVAR_ARCHIVE)
 	CreateConVar("kn_realistic_combine_soldiers_shoot_more_than_two", 1, FCVAR_NOTIFY + FCVAR_ARCHIVE)
 	CreateConVar("kn_realistic_combine_soldiers_soldiers_reload_low", 1, FCVAR_NOTIFY + FCVAR_ARCHIVE)
 	CreateConVar("kn_realistic_combine_soldiers_alone_soldier_instinct", 1, FCVAR_NOTIFY + FCVAR_ARCHIVE)
@@ -34,48 +33,28 @@ if not ConVarExists("kn_realistic_combine") then
 	CreateConVar("kn_realistic_combine_run_from_damage", 1, FCVAR_NOTIFY + FCVAR_ARCHIVE)
 	CreateConVar("kn_realistic_combine_injured_soldier", 1, FCVAR_NOTIFY + FCVAR_ARCHIVE)
 	CreateConVar("kn_realistic_combine_patrol", 0, FCVAR_NOTIFY + FCVAR_ARCHIVE)
+	CreateConVar("kn_realistic_combine_hide_on_spawn", 1, FCVAR_NOTIFY + FCVAR_ARCHIVE)
 end
 --GO TO CODE function CombineAI for full explanation
-function CombineAI_CrosshairMain(ply)
-	if GetConVarNumber("kn_realistic_combine_avoid_player_crosshair")==1 then
-		local tr = ply:GetEyeTrace() 
-		local ent = tr.Entity 
-			if ( !IsValid( ent ) ) then return end 
-		if ent:GetClass()=="npc_combine_s" then
-		ent.IamBeingSeen=true
-		end
-	end
-end
-
-function CombineAI_PropsAndExplosives(npc)
-	if GetConVarNumber("kn_realistic_combine_improved_explosives_behavior")==1 then
-		for _, grenadefrag in ipairs(ents.FindByClass("npc_grenade_frag")) do
+function CombineAI_Grenade(npc)
+	for _, grenadefrag in ipairs(ents.FindByClass("npc_grenade_frag")) do
+		if GetConVarNumber("kn_realistic_combine_improved_grenade_behavior")==1 then
 			if IsValid(grenadefrag) and (grenadefrag:GetPos()-npc:GetPos()):Length() <=250 then
 				local get = npc:GetCurrentSchedule()<=LAST_SHARED_SCHEDULE
-					if get and not npc:IsCurrentSchedule(SCHED_COWER) then
+				if get and not npc:IsCurrentSchedule(SCHED_COWER) then
 					npc:SetSchedule(SCHED_FLEE_FROM_BEST_SOUND)
-					end
-			end
-		end
-
-	for _, explosives in ipairs(ents.FindByClass("prop_physics")) do
-		if IsValid(explosives) and (explosives:GetPos()-npc:GetPos()):Length() <=250 and explosives:GetMaxHealth()>0 and explosives:IsOnFire() and (explosives:GetModel()=="models/props_c17/oildrum001_explosive.mdl") then
-		local get = npc:GetCurrentSchedule()<=LAST_SHARED_SCHEDULE
-			if get and not npc:IsCurrentSchedule(SCHED_COWER) then
-			npc:SetSchedule(SCHED_FLEE_FROM_BEST_SOUND)
-			end
-		end
-	end
-
-	if GetConVarNumber("kn_realistic_combine_shoot_enemy_prop_cover")==1 then
-		if IsValid(enemy) then
-			if (enemy:GetPos()-explosives:GetPos()):Length()<=90 and explosives:GetMaxHealth()>0 and explosives:Visible(npc) and not npc:Visible(enemy) then
-				if npc:GetCurrentSchedule()>=LAST_SHARED_SCHEDULE and !npc:IsCurrentSchedule(SCHED_FORCED_GO_RUN) or npc:GetCurrentSchedule()>=LAST_SHARED_SCHEDULE and !npc:IsCurrentSchedule(SCHED_RUN_RANDOM) or npc:GetCurrentSchedule()>=LAST_SHARED_SCHEDULE and !npc:IsCurrentSchedule(SCHED_RANGE_ATTACK2) or npc:GetCurrentSchedule()>=LAST_SHARED_SCHEDULE and !npc:IsCurrentSchedule(SCHED_HIDE_AND_RELOAD)  or npc:GetCurrentSchedule()>=LAST_SHARED_SCHEDULE and !npc:IsCurrentSchedule(SCHED_RELOAD) then
-				npc:SetSchedule(SCHED_SHOOT_ENEMY_COVER)
 				end
 			end
 		end
-	end
+		if IsValid(grenadefrag) and IsValid(grenadefrag:GetOwner()) and grenadefrag:GetOwner():GetClass()=="npc_combine_s" then
+			if GetConVar("kn_realistic_combine_promixity_grenade"):GetFloat()==1 then
+				if IsValid(enemy) then
+					if (grenadefrag:GetPos()-enemy:GetPos()):Length()<=100 and grenadefrag:Visible(enemy) then
+					grenadefrag:SetSaveValue("m_flDetonateTime", grenadefrag:GetInternalVariable("m_flDetonateTime")-math.random(0.002, 0.01))
+					end
+				end
+			end
+		end
 	end
 end
 
@@ -86,19 +65,24 @@ function CombineAI_ShootMoreThanTwo(npc)
 		end
 	end
 
-	if IsValid(enemy) and not IsValid(enemy:GetActiveWeapon()) and npc:Visible(enemy) then
-		if npc:IsCurrentSchedule(SCHED_TAKE_COVER_FROM_ENEMY)then
-		npc:SetSchedule(SCHED_RANGE_ATTACK1)
+	if enemy:IsNPC() or enemy:IsPlayer() then
+		if IsValid(enemy) and not IsValid(enemy:GetActiveWeapon()) and npc:Visible(enemy) then
+			if npc:IsCurrentSchedule(SCHED_TAKE_COVER_FROM_ENEMY)then
+			npc:SetSchedule(SCHED_RANGE_ATTACK1)
+			end
 		end
 	end
 end
 
 function CombineAI_ReloadLow(npc)
 	if GetConVarNumber("kn_realistic_combine_soldiers_soldiers_reload_low")==1 then
+		if npc:IsCurrentSchedule(SCHED_HIDE_AND_RELOAD) and IsValid(enemy) and !npc:Visible(enemy) then 
+			npc:SetSchedule(SCHED_RELOAD)
+		end
 		if npc:IsCurrentSchedule(SCHED_RELOAD) then
 			if npc:GetMovementActivity(ACT_RELOAD) then
-			npc:SetActivity(ACT_RELOAD_LOW)
-			npc.SoldierReloading=true
+				npc:SetActivity(ACT_RELOAD_LOW)
+				npc.SoldierReloading=true
 			end
 		end
 	end
@@ -116,38 +100,43 @@ end
 
 function CombineAI_GunAccuracy(npc)
 	if GetConVar("kn_realistic_combine_accuracy"):GetFloat()==1 then
-	if IsValid(enemy) and (enemy:GetPos()-npc:GetPos()):Length() <=1200 then 
-		npc:SetSaveValue("m_CurrentWeaponProficiency", 10)
-	else npc:SetSaveValue("m_CurrentWeaponProficiency", 4)
-	end
+		if IsValid(enemy) and (enemy:GetPos()-npc:GetPos()):Length() <=1200 then 
+			npc:SetSaveValue("m_CurrentWeaponProficiency", 10)
+	else	
+			npc:SetSaveValue("m_CurrentWeaponProficiency", 4)
+		end
 	end
 
 	if GetConVar("kn_realistic_combine_accuracy"):GetFloat()==2 then
-	if IsValid(enemy) and (enemy:GetPos()-npc:GetPos()):Length() <=1200 then 
-		npc:SetSaveValue("m_CurrentWeaponProficiency", 4)
-	else npc:SetSaveValue("m_CurrentWeaponProficiency", 3)
-	end
+		if IsValid(enemy) and (enemy:GetPos()-npc:GetPos()):Length() <=1200 then 
+			npc:SetSaveValue("m_CurrentWeaponProficiency", 4)
+	else 
+			npc:SetSaveValue("m_CurrentWeaponProficiency", 3)
+		end
 	end
 
 	if GetConVar("kn_realistic_combine_accuracy"):GetFloat()==3 then
-	if IsValid(enemy) and (enemy:GetPos()-npc:GetPos()):Length() <=1200 then 
-		npc:SetSaveValue("m_CurrentWeaponProficiency", 3)
-	else npc:SetSaveValue("m_CurrentWeaponProficiency", 2)
-	end
+		if IsValid(enemy) and (enemy:GetPos()-npc:GetPos()):Length() <=1200 then 
+			npc:SetSaveValue("m_CurrentWeaponProficiency", 3)
+	else 
+			npc:SetSaveValue("m_CurrentWeaponProficiency", 2)
+		end
 	end
 
 	if GetConVar("kn_realistic_combine_accuracy"):GetFloat()==4 then
-	if IsValid(enemy) and (enemy:GetPos()-npc:GetPos()):Length() <=1200 then 
-		npc:SetSaveValue("m_CurrentWeaponProficiency", 2)
-	else npc:SetSaveValue("m_CurrentWeaponProficiency", 1)
-	end
+		if IsValid(enemy) and (enemy:GetPos()-npc:GetPos()):Length() <=1200 then 
+			npc:SetSaveValue("m_CurrentWeaponProficiency", 2)
+	else 
+			npc:SetSaveValue("m_CurrentWeaponProficiency", 1)
+		end
 	end
 
 	if GetConVar("kn_realistic_combine_accuracy"):GetFloat()==5 then
-	if IsValid(enemy) and (enemy:GetPos()-npc:GetPos()):Length() <=1200 then 
-		npc:SetSaveValue("m_CurrentWeaponProficiency", 1)
-	else npc:SetSaveValue("m_CurrentWeaponProficiency", 0)
-	end
+		if IsValid(enemy) and (enemy:GetPos()-npc:GetPos()):Length() <=1200 then 
+			npc:SetSaveValue("m_CurrentWeaponProficiency", 1)
+	else 
+			npc:SetSaveValue("m_CurrentWeaponProficiency", 0)
+		end
 	end
 end
 
@@ -181,11 +170,9 @@ end
 
 function CombineAI_MoreChatter(npc)
 	if GetConVar("kn_realistic_combine_make_them_talk_more"):GetFloat()==1 then
-		if npc:IsCurrentSchedule(SCHED_HIDE_AND_RELOAD) and IsValid(enemy) and !npc:Visible(enemy) and npc:IsSquadLeader()==true and !alien_zombies[enemy:GetClass()] then 
-		npc:SetSchedule(SCHED_RELOAD)
+		if npc:IsCurrentSchedule(SCHED_RELOAD) and IsValid(enemy) and !npc:Visible(enemy) and npc:IsSquadLeader()==true then 
 		npc:PlaySentence("COMBINE_LOST_SHORT", 0, 1) 
-		elseif npc:IsCurrentSchedule(SCHED_HIDE_AND_RELOAD) and IsValid(enemy) and !npc:Visible(enemy) and npc:IsSquadLeader()==false and !alien_zombies[enemy:GetClass()] then
-				npc:SetSchedule(SCHED_RELOAD)
+		elseif npc:IsCurrentSchedule(SCHED_RELOAD) and IsValid(enemy) and !npc:Visible(enemy) and npc:IsSquadLeader()==false then
 		npc:PlaySentence("COMBINE_REFIND_ENEMY", 0, 1) 
 		end
 
@@ -266,21 +253,21 @@ end
 
 function CombineAI_AvoidPlayerCrosshair(npc)
 	if GetConVarNumber("kn_realistic_combine_avoid_player_crosshair")==1 then
-		for k,v in pairs(ents.FindByClass("player")) do 
-			if IsValid(v) then 
-				CombineAI_CrosshairMain(v)
+		if enemy:IsPlayer() then
+			local tr = enemy:GetEyeTrace() 
+			local ent = tr.Entity 
+				if ( !IsValid( ent ) ) then return end 
+			if ent:GetClass()=="npc_combine_s" then
+			ent.IamBeingSeen=true
 			end
 		end
 
-		if IsValid(enemy) and enemy:GetClass()=="player" and IsValid(enemy:GetActiveWeapon()) and npc.IamBeingSeen==true and IsValid(npc:GetNearestSquadMember()) then
-			timer.Simple(0, function() 
-				if IsValid(npc) and npc.IamBeingSeen==true then npc.IamBeingSeen=false 
-					if npc:GetCurrentSchedule()>=LAST_SHARED_SCHEDULE then 
-						npc:SetSchedule(SCHED_RUN_RANDOM)
-						npc:GetNearestSquadMember():SetSchedule(SCHED_TAKE_COVER_FROM_ORIGIN)
-					end 
-				end
-			end)
+		if IsValid(enemy) and enemy:GetClass()=="player" and IsValid(enemy:GetActiveWeapon()) and npc.IamBeingSeen==true and IsValid(npc:GetNearestSquadMember()) then 
+			npc.IamBeingSeen=false 
+			if npc:GetCurrentSchedule()>=LAST_SHARED_SCHEDULE then 
+				npc:SetSchedule(SCHED_RUN_RANDOM)
+				npc:GetNearestSquadMember():SetSchedule(SCHED_RUN_RANDOM)
+			end
 		end
 	end
 end
@@ -292,7 +279,9 @@ function CombineAI_FlankRevisedBehavior(npc)
 		elseif npc:IsCurrentSchedule(SCHED_AMBUSH) and IsValid(enemy) and enemy:Health()<1 then
 			npc:SetSchedule(SCHED_INVESTIGATE_SOUND)
 		elseif npc:IsCurrentSchedule(SCHED_AMBUSH) and npc:GetMovementActivity(ACT_IDLE) then
-			npc:SetActivity(ACT_CROUCHIDLE)
+			npc:SetActivity(ACT_COVER_LOW)
+		elseif npc:IsCurrentSchedule(SCHED_AMBUSH) and not npc:IsCurrentSchedule(SCHED_RUN_FROM_ENEMY) then
+			npc:ClearSchedule()
 		end
 
 		if enemy:IsNPC() or enemy:IsPlayer() then
@@ -315,26 +304,18 @@ function CombineAI_FlankRevisedBehavior(npc)
 					end
 				elseif (npc:GetPos()-enemy:GetPos()):Length()<=755 then
 					if npc:IsCurrentSchedule(SCHED_FORCED_GO_RUN) or npc:IsCurrentSchedule(118) or npc:IsCurrentSchedule(98) then
-						timer.Simple(math.Rand(2,3), function()
-							if IsValid(npc) then
-								if npc:IsCurrentSchedule(SCHED_FORCED_GO_RUN) or npc:IsCurrentSchedule(118) or npc:IsCurrentSchedule(98) then
-									if not npc:IsSquadLeader() or IsValid(npc:GetActiveWeapon()) and not npc:GetActiveWeapon():GetHoldType()=="shotgun" then
-								npc:SetSchedule(SCHED_RUN_RANDOM)
-									end
+						if not npc:IsSquadLeader() or IsValid(npc:GetActiveWeapon()) and not npc:GetActiveWeapon():GetHoldType()=="shotgun" then
+							npc:SetSchedule(SCHED_RUN_RANDOM)
+						elseif npc:IsSquadLeader() or IsValid(npc:GetActiveWeapon()) and npc:GetActiveWeapon():GetHoldType()=="shotgun" then
+							npc:SetSchedule(SCHED_ESTABLISH_LINE_OF_FIRE)
+						end
+						if npc:GetCurrentSchedule()>=SCHED_RUN_RANDOM and not npc:IsSquadLeader() and IsValid(npc:GetNearestSquadMember()) and not npc.AloneSoldier_Player1==true and not npc.AloneSoldier_Player2==true and not npc.AloneSoldier_NPC1==true and not npc.AloneSoldier_NPC2==true then
+							timer.Simple(3, function()
+								if IsValid(npc) then
+									npc:SetSchedule( SCHED_AMBUSH )
 								end
-							end
-						end)
-						timer.Simple(math.Rand(3, 5), function()
-							if IsValid(npc) then
-								if npc:IsCurrentSchedule(SCHED_RUN_RANDOM) and IsValid(npc:GetNearestSquadMember()) and not npc.AloneSoldier_Player1==true and not npc.AloneSoldier_Player2==true and not npc.AloneSoldier_NPC1==true and not npc.AloneSoldier_NPC2==true then
-									if npc:IsSquadLeader() or IsValid(npc:GetActiveWeapon()) and npc:GetActiveWeapon():GetHoldType()=="shotgun" then
-										npc:SetSchedule(SCHED_ESTABLISH_LINE_OF_FIRE)
-									else
-										npc:SetSchedule( SCHED_AMBUSH )
-									end
-								end
-							end
-						end)
+							end)
+						end
 					end
 				end
 			end
@@ -387,7 +368,11 @@ function CombineAI_GunsAndShit(npc)
 			npc:SetSaveValue("m_fIsElite", true) 
 			end
 			if GetConVar("kn_realistic_combine_no_delay_gunshots"):GetFloat()==1 then
-			npc:SetSaveValue("m_nShots", npc:GetInternalVariable("m_nShots")+math.random(0.1, 0.23))
+				if IsValid(enemy) then
+					if npc:IsLineOfSightClear(enemy:HeadTarget(Vector(0,0,0)))==true then 
+					npc:SetSaveValue("m_nShots", npc:GetInternalVariable("m_nShots")+math.random(0.1, 0.23))
+					end
+				end
 			end
 			if IsValid(enemy) and npc:Visible(enemy) then 
 			npc:SetSaveValue("m_flNextAltFireTime", npc:GetInternalVariable("m_flNextAltFireTime")-0.05) 
@@ -400,31 +385,15 @@ function CombineAI_GunsAndShit(npc)
 				end 
 			end
 			npc:SetSaveValue("m_fIsElite", false)
-			if GetConVar("kn_realistic_combine_no_delay_gunshots"):GetFloat()==1 then 
-			npc:SetSaveValue("m_nShots", npc:GetInternalVariable("m_nShots")+1)
-			end
-		end
-	end	
-end
-
-function CombineAI_FastGrenade(npc)
-	for k, v in pairs(ents.FindByClass("npc_grenade_frag")) do
-		if IsValid(v) and IsValid(v:GetOwner()) and v:GetOwner():GetClass()=="npc_combine_s" then
-			if GetConVar("kn_realistic_combine_promixity_grenade"):GetFloat()==1 then
+			if GetConVar("kn_realistic_combine_no_delay_gunshots"):GetFloat()==1 then
 				if IsValid(enemy) then
-					if (v:GetPos()-enemy:GetPos()):Length()<=100 and v:Visible(enemy) then
-					v:SetSaveValue("m_flDetonateTime", v:GetInternalVariable("m_flDetonateTime")-math.random(0.002, 0.01))
+					if npc:IsLineOfSightClear(enemy:HeadTarget(Vector(0,0,0)))==true then 
+					npc:SetSaveValue("m_nShots", npc:GetInternalVariable("m_nShots")+1)
 					end
 				end
 			end
 		end
-	end
-end
-
-function CombineAI_RememberEnemy(npc)
-	if IsValid(enemy) then
-		npc:SetEnemy(enemy)
-	end
+	end	
 end
 
 function CombineAI_Patrol(npc)
@@ -468,14 +437,12 @@ function CombineAI(npc)
 			CombineAI_EnemyTooClose(npc)--makes soldiers move away from enemies unless they are too closed. they can still do melee attacks.
 			CombineAI_StealthMovement(npc)--makes soldiers not make any footstep sound and generally slow walk
 			CombineAI_GunsAndShit(npc)--edited weapon properties such as making them elite, auto gunshots, frequent grenade throwings, etc...
-			CombineAI_FastGrenade(npc)--makes grenades that are owned by soldiers to explode fast in enemy proximity
 			CombineAI_NoFlinch(npc)--makes them not flinch. not realistic tho. but this is number one reason why these guys are sooo dumb and weak and die fast from my testing. i have to do this.
-			CombineAI_RememberEnemy(npc)--Remember enemy
 		else
-			CombineAI_Patrol(npc)
+			CombineAI_Patrol(npc)--make them patrol if not in their combat state
 		end
+		CombineAI_Grenade(npc)--makes soldier run away from grenades and makes their grenade explode fast when near an enemy
 		--MORE AI BEHAVIORS DOWN BELOW WITH EXPLANATION
-		CombineAI_PropsAndExplosives(npc)--this ai behavior makes them run from burning barrels and hl2 grenades.
 	end
 end
 
@@ -496,8 +463,7 @@ function kn_addon_ConvarChange()
 		GetConVar("kn_realistic_combine_no_delay_gunshots"):SetFloat(0)
 		GetConVar("kn_realistic_combine_make_them_talk_more"):SetFloat(0)
 		GetConVar("kn_realistic_combine_avoid_player_crosshair"):SetFloat(0)
-		GetConVar("kn_realistic_combine_improved_explosives_behavior"):SetFloat(0)
-		GetConVar("kn_realistic_combine_shoot_enemy_cover"):SetFloat(0)
+		GetConVar("kn_realistic_combine_improved_grenade_behavior"):SetFloat(0)
 		GetConVar("kn_realistic_combine_soldiers_shoot_more_than_two"):SetFloat(0)
 		GetConVar("kn_realistic_combine_soldiers_soldiers_reload_low"):SetFloat(0)
 		GetConVar("kn_realistic_combine_soldiers_alone_soldier_instinct"):SetFloat(0)
@@ -508,6 +474,7 @@ function kn_addon_ConvarChange()
 		GetConVar("kn_realistic_combine_run_from_damage"):SetFloat(0)
 		GetConVar("kn_realistic_combine_injured_soldier"):SetFloat(0)
 		GetConVar("kn_realistic_combine_patrol"):SetFloat(0)
+		GetConVar("kn_realistic_combine_hide_on_spawn"):SetFloat(0)
 	end
 end
 
@@ -568,9 +535,31 @@ function CombineAI_Spawned(ent)--Called as soon as the soldier is spawned. Basic
 	end
 end
 
+function CombineAI_PlayerSpawned(ply,ent)
+	if IsValid(ply) and IsValid(ent) then
+		if GetConVarNumber("kn_realistic_combine")==1 then
+			if GetConVarNumber("kn_realistic_combine_ai")==1 then
+				if GetConVarNumber("kn_realistic_combine_hide_on_spawn")==1 then
+					if (ent:GetClass()=="npc_combine_s") then
+						timer.Simple(1, function()
+							if IsValid(ent) and IsValid(ent:GetNearestSquadMember()) and not IsValid(enemy) and not ent:GetNearestSquadMember():IsCurrentSchedule(SCHED_TAKE_COVER_FROM_ENEMY) then
+								ent:GetNearestSquadMember():SetSchedule(SCHED_TAKE_COVER_FROM_ENEMY)
+							end
+						end)
+					end
+				end
+			end
+		end
+	end
+end
+
 hook.Add( "OnEntityCreated", "InitCombine)kenni", function( ent ) 
 	CombineAI_Spawned(ent)
 end )
+
+hook.Add( "PlayerSpawnedNPC", "InitCombine)kenni", function(ply, ent)
+	CombineAI_PlayerSpawned(ply,ent)
+end)
 
 function CombineAI_TakingDamage(npc, hitgroup, dmginfo)
 --AI Behavior and hl2 boosted weapon damages. 
@@ -583,15 +572,13 @@ function CombineAI_TakingDamage(npc, hitgroup, dmginfo)
 					if dmginfo:GetAttacker():GetClass()=="npc_combine_s" then
 				else npc.Combinehide=true 
 						if npc.Combinehide==true then 
-							timer.Simple(1.5, function() 
-								if IsValid(npc) and IsValid(npc:GetNearestSquadMember()) and npc.Combinehide==true and not npc:IsCurrentSchedule(SCHED_RUN_FROM_ENEMY) and not npc:IsCurrentSchedule(SCHED_FLEE_FROM_BEST_SOUND) and not npc:HasCondition(27) and not npc.SoldierDied and not npc:IsCurrentSchedule(SCHED_RELOAD) then
-								npc.Combinehide=false
-								npc:SetSchedule(SCHED_RUN_FROM_ENEMY)
-								if (npc:GetPos()-npc:GetNearestSquadMember():GetPos()):Length()<=700 and npc:GetNearestSquadMember():Visible(npc) and not npc:GetNearestSquadMember():IsCurrentSchedule(SCHED_RUN_FROM_ENEMY) and not npc:GetNearestSquadMember():HasCondition(27) and not npc:GetNearestSquadMember():IsCurrentSchedule(SCHED_FLEE_FROM_BEST_SOUND)  and not npc:GetNearestSquadMember():IsCurrentSchedule(SCHED_RELOAD) then
-								npc:GetNearestSquadMember():SetSchedule(SCHED_RUN_FROM_ENEMY)
-								end
-								end
-							end)
+							if IsValid(npc) and IsValid(npc:GetNearestSquadMember()) and npc.Combinehide==true and not npc:IsCurrentSchedule(SCHED_RUN_FROM_ENEMY) and not npc:IsCurrentSchedule(SCHED_FLEE_FROM_BEST_SOUND) and not npc:HasCondition(27) and not npc.SoldierDied and not npc:IsCurrentSchedule(SCHED_RELOAD) then
+							npc.Combinehide=false
+							npc:SetSchedule(SCHED_RUN_FROM_ENEMY)
+							if (npc:GetPos()-npc:GetNearestSquadMember():GetPos()):Length()<=700 and npc:GetNearestSquadMember():Visible(npc) and not npc:GetNearestSquadMember():IsCurrentSchedule(SCHED_RUN_FROM_ENEMY) and not npc:GetNearestSquadMember():HasCondition(27) and not npc.SoldierDied and not npc:GetNearestSquadMember():IsCurrentSchedule(SCHED_FLEE_FROM_BEST_SOUND)  and not npc:GetNearestSquadMember():IsCurrentSchedule(SCHED_RELOAD) then
+							npc:GetNearestSquadMember():SetSchedule(SCHED_RUN_FROM_ENEMY)
+							end
+							end
 						end
 					end
 				end
