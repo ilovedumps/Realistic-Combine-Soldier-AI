@@ -198,9 +198,9 @@ end
 
 function CombineAI_MoreChatter(npc)
 	if GetConVar("kn_realistic_combine_make_them_talk_more"):GetFloat()==1 then
-		if npc:IsCurrentSchedule(SCHED_RELOAD) and IsValid(enemy) and !npc:Visible(enemy) and npc:IsSquadLeader()==true then 
+		if npc:IsCurrentSchedule(SCHED_HIDE_AND_RELOAD) and IsValid(enemy) and !npc:Visible(enemy) and npc:IsSquadLeader()==true then 
 		npc:PlaySentence("COMBINE_LOST_SHORT", 0, 1) 
-		elseif npc:IsCurrentSchedule(SCHED_RELOAD) and IsValid(enemy) and !npc:Visible(enemy) and npc:IsSquadLeader()==false then
+		elseif npc:IsCurrentSchedule(SCHED_HIDE_AND_RELOAD) and IsValid(enemy) and !npc:Visible(enemy) and npc:IsSquadLeader()==false then
 		npc:PlaySentence("COMBINE_REFIND_ENEMY", 0, 1) 
 		end
 
@@ -349,6 +349,18 @@ function CombineAI_FlankRevisedBehavior(npc)
 	end
 end
 
+function CombineAI_ProtectSquadLeaderBehavior(npc)
+	if not npc:IsCurrentSchedule(SCHED_FORCED_GO_RUN) and npc:GetCurrentSchedule()<=SCHED_FORCED_GO_RUN then
+		if npc:IsSquadLeader() then
+			if (npc:GetPos()-npc:GetNearestSquadMember():GetPos()):Length()>=100 then
+			npc:GetNearestSquadMember():SetLastPosition(npc:GetPos())
+			npc:GetNearestSquadMember():SetSchedule(SCHED_FORCED_GO_RUN)
+			npc.Exclude=true
+			end
+		end
+	end
+end
+
 function CombineAI_EnemyTooClose(npc)
 	if GetConVarNumber("kn_realistic_combine_soldiers_soldiers_move_away_whentooclose_from_enemy")==1 then
 		if IsValid(enemy) and npc:Visible(enemy) and (enemy:GetPos()-npc:GetPos()):Length() <=200 and (enemy:GetPos()-npc:GetPos()):Length() >=30 and enemy:Health()>=enemy:GetMaxHealth()/2.5 then
@@ -429,18 +441,18 @@ function CombineAI_GunsAndShit(npc)
 			if GetConVarNumber("kn_realistic_combine_smg_grenades")==1 then
 				if npc:GetGroundSpeedVelocity()==Vector(0,0,0) then
 					if not npc:GetInternalVariable("m_fIsElite") then
-					if IsValid(enemy) and (enemy:GetPos()-npc:GetPos()):Length()>=250 and (enemy:GetPos()-npc:GetPos()):Length() <=1300 then
-						if math.random(1,5)==3 then
-							timer.Simple(0.5, function()
-								if IsValid(npc) then
-									npc:SetSaveValue("m_fIsElite",true)
-									if npc:GetInternalVariable("m_fIsElite") and GetConVarNumber("kn_realistic_combine_frequent_grenades")==0 then
-									npc:SetSaveValue("m_hForcedGrenadeTarget", enemy)
+						if IsValid(enemy) and (enemy:GetPos()-npc:GetPos()):Length()>=250 and (enemy:GetPos()-npc:GetPos()):Length() <=1300 then
+							if math.random(1,5)==3 then
+								timer.Simple(0.5, function()
+									if IsValid(npc) then
+										npc:SetSaveValue("m_fIsElite",true)
+										if npc:GetInternalVariable("m_fIsElite") and GetConVarNumber("kn_realistic_combine_frequent_grenades")==0 then
+										npc:SetSaveValue("m_hForcedGrenadeTarget", enemy)
+										end
 									end
-								end
-							end)
+								end)
+							end
 						end
-					end
 					else
 					timer.Simple(1, function()
 						if IsValid(npc) then
@@ -515,13 +527,8 @@ end
 
 function CombineAI_SquadMemberTooClose(npc)
 	if not npc:IsCurrentSchedule(SCHED_MOVE_AWAY) then
-		if IsValid(npc:GetNearestSquadMember()) and (npc:GetNearestSquadMember():GetPos()-npc:GetPos()):Length()<=35 then
+		if IsValid(npc:GetNearestSquadMember()) and (npc:GetNearestSquadMember():GetPos()-npc:GetPos()):Length()<=35 and not Exclude then
 			npc:SetSchedule(SCHED_MOVE_AWAY)
-			timer.Simple(1, function()
-				if IsValid(npc) and IsValid(npc:GetNearestSquadMember()) then
-					npc:GetNearestSquadMember():SetSchedule(SCHED_MOVE_AWAY)
-				end
-			end)
 		end
 	end
 end
@@ -547,6 +554,8 @@ function CombineAI(npc)
 			["npc_zombine"]=true,
 			["npc_barnacle"]=true,
 		}
+
+	npc:SetMoveVelocity(npc:GetMoveVelocity()*10)
 	
 		if npc:GetNPCState()==NPC_STATE_COMBAT then--only apply the following ai behaviors if they are in combat, this has the advantage of reducing lag.
 			CombineAI_ShootMoreThanTwo(npc)--makes more than 2 soldiers shoot, in hl2 and gmod they are dumb asf. spawn like 100 of them and only 2 of them shoot.
@@ -662,10 +671,10 @@ function CombineAI_Spawned(ent)--Called as soon as the soldier is spawned. Basic
 					if IsValid(ent) then 
 					local weapon = ent:GetInternalVariable("m_hActiveWeapon")
 						if IsValid(weapon) and weapon:GetClass()=="weapon_ar2" or IsValid(weapon) and weapon:GetHoldType()=="shotgun" then 
-							ent:SetHealth(ent:Health()+GetConVarNumber("kn_realistic_combine_health_normal_soldiers_value"))
-							ent:SetMaxHealth(ent:GetMaxHealth()+GetConVarNumber("kn_realistic_combine_health_normal_soldiers_value"))
-						else ent:SetHealth(ent:Health()+GetConVarNumber("kn_realistic_combine_health_elite_and_shotgunners_soldiers_value"))
-							 ent:SetMaxHealth(ent:GetMaxHealth()+GetConVarNumber("kn_realistic_combine_health_elite_and_shotgunners_soldiers_value"))
+							ent:SetHealth(ent:Health()+GetConVarNumber("kn_realistic_combine_health_elite_and_shotgunners_soldiers_value"))
+							ent:SetMaxHealth(ent:GetMaxHealth()+GetConVarNumber("kn_realistic_combine_health_elite_and_shotgunners_soldiers_value"))
+						else ent:SetHealth(ent:Health()+GetConVarNumber("kn_realistic_combine_health_normal_soldiers_value"))
+							 ent:SetMaxHealth(ent:GetMaxHealth()+GetConVarNumber("kn_realistic_combine_health_normal_soldiers_value"))
 						end
 					end 
 				end)
@@ -677,11 +686,41 @@ function CombineAI_Spawned(ent)--Called as soon as the soldier is spawned. Basic
 			if (GetConVarNumber("kn_realistic_combine_jump")==1) then
 				ent:CapabilitiesAdd( CAP_MOVE_JUMP )
 			end
-			if math.random(1,2)==2 then
+			if math.random(1,2)==1 then
 				ent.SoldierWalk=true
-			else
+			elseif math.random(1,2)==2 then
 				ent.SoldierCrouch=true
 			end
+			--[[timer.Simple(0, function()
+				if IsValid(ent) then
+					Weap1 = "simple_css_ak47"
+					Weap2 = "simple_css_famas"
+					Weap3 = "simple_css_galil"
+					Weap4 = "simple_css_m249"
+					Weap5 = "simple_css_m4a1"
+					Weap6 = "simple_css_mp5"
+					Weap7 = "simple_css_p90"
+					Weap8 = "simple_css_ump"
+					Weap9 = "simple_css_m3"
+					Weap10 = "simple_css_xm1014"
+					local Weapon = {}
+						Weapon[1] = (Weap1)
+						Weapon[2] = (Weap2)
+						Weapon[3] = (Weap3)
+						Weapon[4] = (Weap4)
+						Weapon[5] = (Weap5)
+						Weapon[6] = (Weap6)
+						Weapon[7] = (Weap7)
+						Weapon[8] = (Weap8)
+						Weapon[9] = (Weap9)
+						Weapon[10] = (Weap10)
+					if ent:GetSkin()==1 then
+					ent:Give(Weapon[math.random(9,10)])
+					else
+					ent:Give( Weapon[math.random(1,8)] )
+					end
+				end
+			end)]]--
 		end
 	end
 end
@@ -785,33 +824,34 @@ end
 hook.Add("ScalePlayerDamage","kenni_damage_combine", playerdamage_maggle)
 
 function CombineAI_SMGGRENADE(data)
-	if GetConVar("kn_realistic_combine"):GetFloat()==1 and GetConVar("kn_realistic_combine_ai"):GetFloat()==1 and GetConVarNumber("kn_realistic_combine_smg_grenades")==1 then
-		local ar2_ball = {
-		[Sound("Weapon_CombineGuard.Special1")] = true,-- the sound when you are about to fire an ar2 ball. We need to not call back this sound.
-		}
---[[	local ar2_shoot = data.Entity:LookupSequence("ShootAR2alt")
-		local ar2_dur = data.Entity:SequenceDuration(ar2_shoot)]]--  NOT NEEDED
-		if IsValid(data.Entity) then
-			if data.Entity:GetClass()=="npc_combine_s" and IsValid(data.Entity:GetActiveWeapon()) then 
-				if data.Entity:GetActiveWeapon():GetClass()=="weapon_smg1" then
-					if ar2_ball[data.OriginalSoundName] then
-						timer.Simple(0.5, function()
-							if IsValid(data.Entity) and IsValid(data.Entity:GetEnemy()) then
-								data.Entity:EmitSound("Weapon_SMG1.Double")--The smg grenade fire sound
-								local grenade = ents.Create("grenade_ar2")-- the smg grenade entity
-								grenade:SetAngles(data.Entity:GetAngles())
-								grenade:SetVelocity((data.Entity:GetEnemy():GetPos()-data.Entity:GetPos()):Length() * 1.5 * data.Entity:GetAimVector() + data.Entity:GetEnemy():GetUp() * 50  )
-								grenade:SetPos(data.Entity:GetShootPos() + data.Entity:GetUp()*-8.9 + data.Entity:GetForward()*8 + data.Entity:GetAimVector() * 10)
-								grenade:Spawn()
-								grenade:SetOwner(data.Entity)
-							end
-						end)
-						return false--this makes the ar2 ball sound not emit, instead the smg grenade sound gets emitted
+	if GetConVarNumber("kn_realistic_combine")==1 then 
+		if GetConVarNumber("kn_realistic_combine_ai")==1 then
+			if GetConVarNumber("kn_realistic_combine_smg_grenades")==1 then
+				timer.Simple(0.5, function()
+					if IsValid(data.Entity) and IsValid(data.Entity:GetEnemy()) then
+						data.Entity:EmitSound("Weapon_SMG1.Double")--The smg grenade fire sound
+						local grenade = ents.Create("grenade_ar2")-- the smg grenade entity
+						grenade:SetAngles(data.Entity:GetAngles())
+						grenade:SetVelocity((data.Entity:GetEnemy():GetPos()-data.Entity:GetPos()):Length() * 1.5 * data.Entity:GetAimVector() + data.Entity:GetEnemy():GetUp() * 50  )
+						grenade:SetPos(data.Entity:GetShootPos() + data.Entity:GetUp()*-8.9 + data.Entity:GetForward()*8 + data.Entity:GetAimVector() * 10)
+						grenade:Spawn()
+						grenade:SetOwner(data.Entity)
 					end
-				end
+				end)
+				return true
 			end
 		end
 	end
 end
 
-hook.Add( "EntityEmitSound", "kenni_sound_maggle",CombineAI_SMGGRENADE)--we use sound manipulation to make people think soldiers can actually use smg grenades
+hook.Add( "EntityEmitSound", "kenni_sound_maggle",function(data)--we use sound manipulation to make people think soldiers can actually use smg grenades
+	local ar2_ball = {
+	[Sound("Weapon_CombineGuard.Special1")] = true,-- the sound when you are about to fire an ar2 ball. We need to not call back this sound.
+	}
+	if ar2_ball[data.OriginalSoundName] == true and
+	IsValid(data.Entity) and IsValid(data.Entity:GetActiveWeapon()) and 
+	data.Entity:GetClass()=="npc_combine_s" and data.Entity:GetActiveWeapon():GetClass()=="weapon_smg1" then
+		CombineAI_SMGGRENADE(data)
+		return false
+	end
+end)
